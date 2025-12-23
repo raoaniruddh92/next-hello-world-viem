@@ -30,6 +30,9 @@ const web3Onboard = init({
   connect: {
     autoConnectLastWallet: true 
   },
+  notify: {
+    enabled: true
+  },
   accountCenter: {
     desktop: {
       enabled: true,
@@ -39,6 +42,7 @@ const web3Onboard = init({
       enabled: true,
       position: 'topRight'
     }
+
   }
 })
 

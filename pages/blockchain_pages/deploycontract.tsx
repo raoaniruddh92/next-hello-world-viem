@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPublicClient, custom, createWalletClient } from 'viem'
 import { sepolia } from 'viem/chains'
 import { useConnectWallet, useNotifications } from '@web3-onboard/react'
@@ -10,28 +10,36 @@ export default function DeployContract({ onDeployed }: { onDeployed: (addr: stri
   const [{ wallet }] = useConnectWallet()
   const [, customNotification] = useNotifications()
   
-  // Ref to hold the notification update/dismiss functions
+  // Initialize processing based on localStorage to prevent "flash" of enabled button
+  const [processing, setProcessing] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return !!localStorage.getItem('pending_deploy_hash')
+    }
+    return false
+  })
+
   const notifyController = useRef<{ update: Function; dismiss: Function } | null>(null)
 
   useEffect(() => {
     const pendingHash = localStorage.getItem('pending_deploy_hash')
-    // Only resume if we have a hash AND a connected wallet
     if (pendingHash && wallet?.provider) {
       resumeTracking(pendingHash as `0x${string}`)
     }
   }, [wallet])
 
   async function resumeTracking(hash: `0x${string}`) {
+    setProcessing(true) // Ensure state is synced
+    
     const publicClient = createPublicClient({
       chain: sepolia,
       transport: custom(wallet!.provider),
     })
 
-    // Using the HASH as the ID prevents duplicates on reload
     notifyController.current = customNotification({
+      eventCode: 'dbUpdate', // Web3-Onboard often uses eventCodes for tracking
       type: 'pending',
       message: 'Transaction in progress...',
-      autoDismiss: 0 // Keep it visible until we update it
+      autoDismiss: 0 
     })
 
     try {
@@ -39,13 +47,14 @@ export default function DeployContract({ onDeployed }: { onDeployed: (addr: stri
       handleFinish(receipt, hash)
     } catch (error) {
       handleFinish(null, hash)
+    } finally {
+      setProcessing(false) // Re-enable the button
     }
   }
 
   function handleFinish(receipt: any, hash: string) {
     if (receipt?.contractAddress) {
       notifyController.current?.update({
-        id: hash,
         type: 'success',
         message: 'Deployment successful!',
         autoDismiss: 5000
@@ -53,7 +62,6 @@ export default function DeployContract({ onDeployed }: { onDeployed: (addr: stri
       onDeployed(receipt.contractAddress)
     } else {
       notifyController.current?.update({
-        id: hash,
         type: 'error',
         message: 'Deployment failed.',
         autoDismiss: 5000
@@ -63,7 +71,9 @@ export default function DeployContract({ onDeployed }: { onDeployed: (addr: stri
   }
 
   async function deploy() {
-    if (!wallet?.provider) return
+    if (!wallet?.provider || processing) return
+    
+    setProcessing(true)
 
     try {
       const walletClient = createWalletClient({ chain: sepolia, transport: custom(wallet.provider) })
@@ -76,12 +86,20 @@ export default function DeployContract({ onDeployed }: { onDeployed: (addr: stri
       })
 
       localStorage.setItem('pending_deploy_hash', hash)
-      resumeTracking(hash) // Start tracking immediately
-      
+      resumeTracking(hash)
     } catch (error) {
       console.error("User rejected or failed:", error)
+      setProcessing(false) // Re-enable if user rejects the signature request
     }
   }
 
-  return <button onClick={deploy}>Deploy contract</button>
+  return (
+    <button 
+      onClick={deploy} 
+      disabled={processing}
+      style={{ cursor: processing ? 'not-allowed' : 'pointer', opacity: processing ? 0.6 : 1 }}
+    >
+      {processing ? 'Deploying...' : 'Deploy contract'}
+    </button>
+  )
 }

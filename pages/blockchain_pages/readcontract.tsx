@@ -11,6 +11,7 @@ export default function ReadHello() {
   const [address, setAddress] = useState('')
   const [result, setResult] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [processing, setprocessing] = useState<boolean | null>(null)
 
   // ✅ AUTO-FILL FROM LOCALSTORAGE
   useEffect(() => {

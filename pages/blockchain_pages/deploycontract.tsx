@@ -17,7 +17,6 @@ export default function DeployContract({ onDeployed }: { onDeployed: (addr: stri
         eventCode: 'deploy_started',
         type: 'pending',
         message: 'Deploying contract...',
-        // Remove autoDismiss or set it high so it doesn't vanish while waiting
         autoDismiss: 0 
     })
 

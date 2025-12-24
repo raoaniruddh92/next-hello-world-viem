@@ -25,10 +25,7 @@ export default function Home() {
 
   return (
     <div style={{ padding: '20px' }}>
-      <button
-        disabled={connecting}
-        onClick={() => (wallet ? disconnect(wallet) : connect())}
-      >
+      <button disabled={connecting} onClick={() => (wallet ? disconnect(wallet) : connect())}>
         {connecting ? 'Connecting' : wallet ? 'Disconnect' : 'Connect'}
       </button>
 
@@ -49,6 +46,7 @@ export default function Home() {
           {/* Pass the address to ReadHello so it knows which contract to talk to */}
           {address && <ReadHello/>}
         </div>
+
       )}
     </div>
   )

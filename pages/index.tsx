@@ -47,7 +47,7 @@ export default function Home() {
 
           <br />
           {/* Pass the address to ReadHello so it knows which contract to talk to */}
-          {address && <ReadHello contractAddress={address} />}
+          {address && <ReadHello/>}
         </div>
       )}
     </div>

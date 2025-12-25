@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useConnectWallet, useNotifications } from '@web3-onboard/react'
 import { abi, bytecode } from '@/blockchain_modules/data'
-import { getLibWalletClient,publicClient } from './utils/client'
+import { getLibWalletClient,publicClient } from '../../blockchain_modules/utils/client'
 
 export default function DeployContract({ onDeployed }: { onDeployed: (addr: string) => void }) {
   const [{ wallet }] = useConnectWallet()

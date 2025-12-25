@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useConnectWallet } from '@web3-onboard/react'
 import {isAddress } from 'viem'
 import { abi } from '@/blockchain_modules/data'
-import { publicClient } from './utils/client'
+import { publicClient } from '../../blockchain_modules/utils/client'
 
 
 export default function ReadHello() {

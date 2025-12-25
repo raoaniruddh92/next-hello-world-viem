@@ -1,3 +1,6 @@
+'use client'
+
+
 import { createPublicClient, http, createWalletClient, custom } from 'viem'
 import { sepolia } from 'viem/chains'
 

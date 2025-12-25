@@ -5,6 +5,7 @@ import { createPublicClient, custom, createWalletClient } from 'viem'
 import { sepolia } from 'viem/chains'
 import { useConnectWallet, useNotifications } from '@web3-onboard/react'
 import { abi, bytecode } from '@/blockchain_modules/data'
+import { http } from 'viem'
 
 export default function DeployContract({ onDeployed }: { onDeployed: (addr: string) => void }) {
   const [{ wallet }] = useConnectWallet()
@@ -32,7 +33,7 @@ export default function DeployContract({ onDeployed }: { onDeployed: (addr: stri
     
     const publicClient = createPublicClient({
       chain: sepolia,
-      transport: custom(wallet!.provider),
+      transport: http("https://ethereum-sepolia.gateway.tatum.io"),
     })
 
     notifyController.current = customNotification({

@@ -8,7 +8,6 @@ export default function ChainWrapper({ children }: { children: React.ReactNode }
   const [{ connectedChain }, setChain] = useSetChain()
 
   useEffect(() => {
-    // If wallet is connected but on the wrong chain
     if (wallet && connectedChain && connectedChain.id !== REQUIRED_CHAIN_ID) {
       const switchChain = async () => {
         try {

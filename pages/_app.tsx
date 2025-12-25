@@ -26,11 +26,13 @@ const web3Onboard = init({
     description: 'A demo of Web3-Onboard.'
   },
   connect: {
-    autoConnectLastWallet: true 
+    autoConnectLastWallet: true,
+    
   },
   notify: {
     enabled: true
   },
+  theme:'dark',
   accountCenter: {
     desktop: {
       enabled: true,

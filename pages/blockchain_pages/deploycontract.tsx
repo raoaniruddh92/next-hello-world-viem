@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useConnectWallet, useNotifications } from '@web3-onboard/react'
 import { abi, bytecode } from '@/blockchain_modules/data'
 import { getLibWalletClient,publicClient } from '../../blockchain_modules/utils/client'
+import { parseEther } from 'viem'
+import type { TransactionReceipt } from "viem";
 
 export default function DeployContract({ onDeployed }: { onDeployed: (addr: string) => void }) {
   const [{ wallet }] = useConnectWallet()
@@ -48,59 +50,122 @@ export default function DeployContract({ onDeployed }: { onDeployed: (addr: stri
     }
   }
 
-  function handleFinish(receipt: any, hash: string) {
-    if (receipt?.contractAddress) {
+async function handleFinish(
+  receipt: TransactionReceipt | null,
+  hash: `0x${string}`
+) {
+  try {
+    // --- 1. No receipt or no contract address → fail early ---
+    if (!receipt?.contractAddress) {
       notifyController.current?.update({
-        type: 'success',
-        message: 'Deployment successful!',
-        autoDismiss: 5000
-      })
-      onDeployed(receipt.contractAddress)
-    } else {
-      notifyController.current?.update({
-        type: 'error',
-        message: 'Deployment failed.',
-        autoDismiss: 5000
-      })
+        type: "error",
+        message: "Deployment failed.",
+        autoDismiss: 5000,
+      });
+      return;
     }
-    localStorage.removeItem('pending_deploy_hash')
-  }
 
-  async function deploy() {
-  // 1. Ensure wallet and provider exist
+    const contractAddress = receipt.contractAddress;
+
+    // --- 2. Deployment success ---
+    notifyController.current?.update({
+      type: "success",
+      message: "Deployment successful!",
+      autoDismiss: 5000,
+    });
+
+    onDeployed(contractAddress);
+
+    // --- 3. Wait for chain + Sourcify indexing ---
+    await new Promise((resolve) => setTimeout(resolve, 5_000));
+
+    // --- 4. Call verification API ---
+    const res = await fetch("/api/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address: contractAddress }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Verification request failed (${res.status})`);
+    }
+
+    const data = await res.json();
+
+    if (!data.success) {
+      console.warn("Contract verification failed:", data);
+      notifyController.current?.update({
+        type: "warning",
+        message: "Contract deployed, but verification failed.",
+        autoDismiss: 6000,
+      });
+    }
+  } catch (err) {
+    console.error("handleFinish error:", err);
+    notifyController.current?.update({
+      type: "warning",
+      message: "Deployment succeeded, but verification failed.",
+      autoDismiss: 6000,
+    });
+  } finally {
+    // --- 5. Always clean up ---
+    localStorage.removeItem("pending_deploy_hash");
+    setProcessing(false);
+  }
+}
+
+async function deploy() {
   if (!wallet?.provider || processing) return
   
   setProcessing(true)
 
   try {
-    // 2. Initialize the wallet client with the CURRENT provider
     const client = getLibWalletClient(wallet.provider)
-
-    // 3. Get the specific account address from the wallet
     const [account] = await client.getAddresses()
 
     if (!account) throw new Error("No account found")
 
-    // 4. Deploy using the local client instance
     const hash = await client.deployContract({
       abi,
-      account, // This is now explicitly passed
+      account,
       bytecode: bytecode as `0x${string}`,
     })
 
     localStorage.setItem('pending_deploy_hash', hash)
     resumeTracking(hash)
-  } catch (error) {
+    
+  } catch (error: any) {
     console.error("Deployment Error:", error)
-    notifyController.current?.update({
+    
+    // Check if the user rejected the request
+    // Common error codes: 4001 (EIP-1193) or "User rejected the request" string
+    const isUserRejected = 
+      error.code === 4001 || 
+      error.message?.toLowerCase().includes('user rejected') ||
+      error.shortMessage?.toLowerCase().includes('user rejected')
+
+    const errorMessage = isUserRejected 
+      ? 'Transaction rejected by user.' 
+      : 'Deployment failed. Please try again.'
+
+    // Create or Update notification
+    if (notifyController.current) {
+      notifyController.current.update({
         type: 'error',
-        message: error,
+        message: errorMessage,
         autoDismiss: 5000
-    })
+      })
+    } else {
+      customNotification({
+        type: 'error',
+        message: errorMessage,
+        autoDismiss: 5000
+      })
+    }
+
     setProcessing(false) 
   }
 }
-
   return (
     <button 
       onClick={deploy} 

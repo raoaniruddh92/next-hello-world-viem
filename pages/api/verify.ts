@@ -1,9 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import fs from "fs";
 import path from "path";
+// @ts-ignore
 import { Sourcify } from "@nomicfoundation/hardhat-verify/sourcify.js";
 import type { TransactionReceipt } from "viem";
-import comp from "@/blockchain_modules/hello_compData.json";
 
 const sourcify = new Sourcify(
   11155111,

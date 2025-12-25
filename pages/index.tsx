@@ -50,9 +50,15 @@ const [
           )}
 
           <DeployContract onDeployed={setAddress} />
+{connectedChain ? (
+  <div style={{ marginBottom: '10px', color: 'blue' }}>
+    <strong>Chain ID:</strong> {connectedChain.id} <br />
+  </div>
+) : (
+  <p style={{ color: 'red' }}>No chain connected</p>
+)}
 
           <br />
-          {/* Pass the address to ReadHello so it knows which contract to talk to */}
           {address && <ReadHello/>}
         </div>
 

@@ -1,7 +1,6 @@
 'use client'
 
 
-import { constant } from 'lodash'
 import { createPublicClient, http, createWalletClient, custom } from 'viem'
 import { sepolia } from 'viem/chains'
 

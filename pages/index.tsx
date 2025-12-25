@@ -4,10 +4,19 @@ import { useEffect, useState } from 'react'
 import { useConnectWallet } from '@web3-onboard/react'
 import DeployContract from './blockchain_pages/deploycontract'
 import ReadHello from './blockchain_pages/readcontract'
+import { useSetChain } from '@web3-onboard/react'
 
 export default function Home() {
   const [{ wallet, connecting }, connect, disconnect] = useConnectWallet()
   const [address, setAddress] = useState<string | null>(null)
+const [
+  {
+    chains, // the list of chains that web3-onboard was initialized with
+    connectedChain, // the current chain the user's wallet is connected to
+    settingChain // boolean indicating if the chain is in the process of being set
+  },
+  setChain // function to call to initiate user to switch chains in their wallet
+] = useSetChain();
 
   // 1. Load from localStorage on initial mount
   useEffect(() => {

@@ -92,6 +92,11 @@ export default function DeployContract({ onDeployed }: { onDeployed: (addr: stri
     resumeTracking(hash)
   } catch (error) {
     console.error("Deployment Error:", error)
+    notifyController.current?.update({
+        type: 'error',
+        message: error,
+        autoDismiss: 5000
+    })
     setProcessing(false) 
   }
 }

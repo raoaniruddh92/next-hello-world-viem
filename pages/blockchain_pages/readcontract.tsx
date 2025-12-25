@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useConnectWallet } from '@web3-onboard/react'
-import { createPublicClient, custom, isAddress } from 'viem'
-import { sepolia } from 'viem/chains'
+import {isAddress } from 'viem'
 import { abi } from '@/blockchain_modules/data'
-import { http } from 'viem'
+import { publicClient } from './utils/client'
+
+
 export default function ReadHello() {
   const [{ wallet }] = useConnectWallet()
   const [address, setAddress] = useState('')
@@ -28,10 +29,6 @@ export default function ReadHello() {
       if (!wallet?.provider) throw new Error('Wallet not connected')
       if (!isAddress(address)) throw new Error('Invalid address')
 
-      const publicClient = createPublicClient({
-        chain: sepolia,
-        transport: http("https://ethereum-sepolia.gateway.tatum.io"),
-      })
       const data = await publicClient.readContract({
         address: address as `0x${string}`,
         abi,

@@ -1,11 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { createPublicClient, custom, createWalletClient } from 'viem'
-import { sepolia } from 'viem/chains'
 import { useConnectWallet, useNotifications } from '@web3-onboard/react'
 import { abi, bytecode } from '@/blockchain_modules/data'
-import { http } from 'viem'
+import { getLibWalletClient,publicClient } from './utils/client'
 
 export default function DeployContract({ onDeployed }: { onDeployed: (addr: string) => void }) {
   const [{ wallet }] = useConnectWallet()
@@ -22,6 +20,7 @@ export default function DeployContract({ onDeployed }: { onDeployed: (addr: stri
   const notifyController = useRef<{ update: Function; dismiss: Function } | null>(null)
 
   useEffect(() => {
+    
     const pendingHash = localStorage.getItem('pending_deploy_hash')
     if (pendingHash && wallet?.provider) {
       resumeTracking(pendingHash as `0x${string}`)
@@ -31,10 +30,6 @@ export default function DeployContract({ onDeployed }: { onDeployed: (addr: stri
   async function resumeTracking(hash: `0x${string}`) {
     setProcessing(true) // Ensure state is synced
     
-    const publicClient = createPublicClient({
-      chain: sepolia,
-      transport: http("https://ethereum-sepolia.gateway.tatum.io"),
-    })
 
     notifyController.current = customNotification({
       eventCode: 'dbUpdate', // Web3-Onboard often uses eventCodes for tracking
@@ -72,27 +67,34 @@ export default function DeployContract({ onDeployed }: { onDeployed: (addr: stri
   }
 
   async function deploy() {
-    if (!wallet?.provider || processing) return
-    
-    setProcessing(true)
+  // 1. Ensure wallet and provider exist
+  if (!wallet?.provider || processing) return
+  
+  setProcessing(true)
 
-    try {
-      const walletClient = createWalletClient({ chain: sepolia, transport: custom(wallet.provider) })
-      const [account] = await walletClient.getAddresses()
+  try {
+    // 2. Initialize the wallet client with the CURRENT provider
+    const client = getLibWalletClient(wallet.provider)
 
-      const hash = await walletClient.deployContract({
-        abi,
-        account,
-        bytecode: bytecode as `0x${string}`,
-      })
+    // 3. Get the specific account address from the wallet
+    const [account] = await client.getAddresses()
 
-      localStorage.setItem('pending_deploy_hash', hash)
-      resumeTracking(hash)
-    } catch (error) {
-      console.error("User rejected or failed:", error)
-      setProcessing(false) // Re-enable if user rejects the signature request
-    }
+    if (!account) throw new Error("No account found")
+
+    // 4. Deploy using the local client instance
+    const hash = await client.deployContract({
+      abi,
+      account, // This is now explicitly passed
+      bytecode: bytecode as `0x${string}`,
+    })
+
+    localStorage.setItem('pending_deploy_hash', hash)
+    resumeTracking(hash)
+  } catch (error) {
+    console.error("Deployment Error:", error)
+    setProcessing(false) 
   }
+}
 
   return (
     <button 

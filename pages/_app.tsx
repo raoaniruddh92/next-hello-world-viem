@@ -12,7 +12,7 @@ const metamaskSDKWallet = metamaskSDK({
 })
 
 const ethereumSepolia = {
-  id: '0xaa36a7', 
+  id: 11155111,
   token: 'ETH',
   label: 'Sepolia',
   rpcUrl: 'https://rpc.sepolia.org/'

@@ -1,15 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import fs from "fs";
 import path from "path";
-// @ts-ignore
-import { Sourcify } from "@nomicfoundation/hardhat-verify/sourcify.js";
-import type { TransactionReceipt } from "viem";
 
-const sourcify = new Sourcify(
-  11155111,
-  "https://sourcify.dev/server",
-  "https://repo.sourcify.dev"
-);
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -17,57 +9,59 @@ export default async function handler(
   console.log("➡️ /api/verify hit");
 
   try {
-    console.log("1️⃣ method:", req.method);
-
     if (req.method !== "POST") {
-      console.log("❌ wrong method");
       return res.status(405).json({ error: "Method not allowed" });
     }
 
-    console.log("2️⃣ body:", req.body);
-
     const { address } = req.body;
-
     if (!address) {
-      console.log("❌ missing address");
       return res.status(400).json({ error: "Address is required" });
     }
 
-    console.log("3️⃣ address ok:", address);
-
-    console.log("4️⃣ loading comp file...");
+    // 1. Load the compilation data
     const compPath = path.join(process.cwd(), "public", "hello_compData.json");
-    console.log("   path:", compPath);
-
     const raw = fs.readFileSync(compPath, "utf8");
-    console.log("5️⃣ file loaded");
-
     const comp = JSON.parse(raw);
-    console.log("6️⃣ json parsed");
-
-    console.log("7️⃣ parsing compiler input");
     const compilerInput = JSON.parse(comp.compilerInput);
-    console.log("8️⃣ sources:", Object.keys(compilerInput.sources));
 
-    console.log("9️⃣ calling sourcify.verify");
+    // 2. Format the files for Sourcify API
+    // Sourcify expects an object where keys are filenames and values are the content
+    const files: Record<string, string> = {
+      "metadata.json": typeof comp.metadata === "string" 
+        ? comp.metadata 
+        : JSON.stringify(comp.metadata),
+    };
 
-    const result = await sourcify.verify(address, {
-      "metadata.json": comp.metadata,
-      ...Object.fromEntries(
-        Object.entries(compilerInput.sources).map(
-          ([file, data]: any) => [file, data.content]
-        )
-      ),
+    Object.entries(compilerInput.sources).forEach(([file, data]: any) => {
+      files[file] = data.content;
     });
 
-    console.log("🔟 sourcify result:", result);
+    console.log("🚀 Sending to Sourcify...");
 
-    return res.status(200).json({ success: true });
+    // 3. Direct API Call
+    const sourcifyResponse = await fetch("https://sourcify.dev/server/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        address: address,
+        chain: "11155111", // Sepolia
+        files: files,
+      }),
+    });
+
+    const result = await sourcifyResponse.json();
+
+    if (!sourcifyResponse.ok) {
+      throw new Error(result.error || "Sourcify verification failed");
+    }
+
+    console.log("✅ Sourcify result:", result);
+    return res.status(200).json({ success: true, result });
+
   } catch (err: any) {
     console.error("🔥 VERIFY CRASH:", err);
     return res.status(500).json({
       error: err.message,
-      stack: err.stack,
     });
   }
 }

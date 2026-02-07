@@ -15,8 +15,9 @@
     "@web3-onboard/metamask": "^2.2.1",
     "@web3-onboard/react": "^2.11.0",
     "next": "16.1.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react": "^0.0.0-experimental-10680271-20260126",
+    "react-dom": "^0.0.0-experimental-10680271-20260126",
+    "react-scan": "^0.4.3"
   },
   "devDependencies": {
     "@types/node": "^20",
